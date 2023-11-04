@@ -1,15 +1,31 @@
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import PropTypes from 'prop-types';
 import { PiUserCirclePlusLight, PiUserCircleLight, PiPhoneLight } from 'react-icons/pi';
+import { useDispatch, useSelector } from 'react-redux';
+import { addContact, getContacts } from '../redux/contactsSlice';
+import { nanoid } from 'nanoid';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
-export function ContactForm({ onAddContact }) {
+export function ContactForm() {
+  const dispatch = useDispatch();
+  const contacts = useSelector(getContacts);
+
   return (
     <Formik
       initialValues={{ name: '', number: '' }}
-      onSubmit={(values, actions) => {
-        onAddContact(values);
-        actions.resetForm();
+      onSubmit={({ name, number }, actions) => {
+        const nameExists = contacts.some(
+          contact => contact.name.trim().toLowerCase() === name.trim().toLowerCase()
+        );
+        const numberExists = contacts.some(contact => contact.number === number);
+        if (nameExists) {
+          Notify.warning(`${name}' is already in contacts.`);
+        } else if (numberExists) {
+          Notify.warning(`${number}' is already in contacts.`);
+        } else {
+          dispatch(addContact({ id: nanoid(), name, number }));
+          actions.resetForm();
+        }
       }}
       validationSchema={Yup.object().shape({
         name: Yup.string()
@@ -64,7 +80,3 @@ export function ContactForm({ onAddContact }) {
     </Formik>
   );
 }
-
-ContactForm.propTypes = {
-  onAddContact: PropTypes.func.isRequired,
-};
